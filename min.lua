@@ -312,7 +312,6 @@ v5:Destroy();
 --     end
 -- end);
 local v14 = print("cu")
-};
 local v15 = v14:CreateWindow({
     Title = "Min Gaming",
     SubTitle = "",
