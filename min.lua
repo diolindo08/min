@@ -312,15 +312,9 @@ v5:Destroy();
 --     end
 -- end);
 local v14 = print("cu")
-local v15 = v14:CreateWindow({
-    Title = "Min Gaming",
-    SubTitle = "",
-    TabWidth = 160,
-    Theme = "Light",
-    Acrylic = false,
-    Size = UDim2.fromOffset(500, 320),
-    MinimizeKey = Enum.KeyCode.End
-});
+
+local v15 = print("cu")
+
 local v16 = print("cu")
 print("cu")
 print("cu")
@@ -9289,3 +9283,4 @@ v14:Notify({
     Content = "Tải Xong",
     Duration = 10
 });
+
