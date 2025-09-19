@@ -1,4 +1,5 @@
 print("cu1")
+wait(2)
 -- Adicionar tratamento global de erros
 local originalErrorHandler = error
 local function customErrorHandler(message, level)
@@ -11836,3 +11837,4 @@ end)
          end)
      end)
      print("cu2")
+
