@@ -1,3 +1,53 @@
+print("cu1")
+-- Adicionar tratamento global de erros
+local originalErrorHandler = error
+local function customErrorHandler(message, level)
+    warn("Erro capturado: " .. tostring(message))
+    return nil
+end
+
+-- Substituir a função de erro global
+error = function(message, level)
+    warn("Erro ignorado: " .. tostring(message))
+    return nil
+end
+
+-- Ignorar erros de animação específicos
+local function ignoreAnimationErrors()
+    local mt = getrawmetatable(game)
+    local old = mt.__namecall
+    setreadonly(mt, false)
+    
+    mt.__namecall = newcclosure(function(self, ...)
+        local args = {...}
+        local method = getnamecallmethod()
+        
+        if method == "LoadAnimation" then
+            local success, result = pcall(function()
+                return old(self, ...)
+            end)
+            
+            if not success then
+                warn("Erro de animação ignorado: " .. tostring(result))
+                return {
+                    Play = function() return nil end,
+                    Stop = function() return nil end,
+                    AdjustSpeed = function() return nil end
+                }
+            end
+            
+            return result
+        end
+        
+        return old(self, ...)
+    end)
+    
+    setreadonly(mt, true)
+end
+
+-- Tentar aplicar o tratamento de erros de animação
+pcall(ignoreAnimationErrors)
+
 local MatsuneA1 = {};
 
 MatsuneA1["1"] = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"));
@@ -62,7 +112,84 @@ MatsuneA1["4"].MouseButton1Click:Connect(function()
     StopTween()
 end)
 
+-- Substituir a animação problemática
+local problematicAnimationId = "rbxassetid://11542374730"
+local replacementAnimationId = "rbxassetid://4689499237" -- ID de animação alternativa
+
+-- Interceptar carregamento de animações
+local function interceptAnimationLoading()
+    local success, result = pcall(function()
+        local mt = getrawmetatable(game)
+        local oldIndex = mt.__index
+        setreadonly(mt, false)
+        
+        mt.__index = newcclosure(function(self, key)
+            local result = oldIndex(self, key)
+            
+            -- Substituir ID da animação problemática
+            if key == "Animation" and type(result) == "userdata" and result.AnimationId == problematicAnimationId then
+                result.AnimationId = replacementAnimationId
+                warn("Animação problemática substituída")
+            end
+            
+            return result
+        end)
+        
+        setreadonly(mt, true)
+    end)
+    
+    if not success then
+        warn("Falha ao interceptar animações: " .. tostring(result))
+    end
+end
+
+-- Aplicar a interceptação
+pcall(interceptAnimationLoading)
+
 _G.FastAttack = true
+
+-- Adicionar tratamento de erro para animações
+local function SafeLoadAnimation(animationTrack)
+    if not animationTrack then return nil end
+    
+    local success, result = pcall(function()
+        return animationTrack:Play()
+    end)
+    
+    if not success then
+        warn("Falha ao carregar animação: " .. tostring(result))
+        return nil
+    end
+    
+    return result
+end
+
+-- Substituir o método original de carregamento de animação
+if game and game:GetService("Players") and game:GetService("Players").LocalPlayer then
+    local player = game:GetService("Players").LocalPlayer
+    if player.Character then
+        local humanoid = player.Character:FindFirstChild("Humanoid")
+        if humanoid and humanoid:FindFirstChild("Animator") then
+            local originalLoadAnimation = humanoid.Animator.LoadAnimation
+            humanoid.Animator.LoadAnimation = function(self, animationTrack)
+                local success, result = pcall(function()
+                    return originalLoadAnimation(self, animationTrack)
+                end)
+                
+                if not success then
+                    warn("Falha ao carregar animação, usando alternativa")
+                    return {
+                        Play = function() return nil end,
+                        Stop = function() return nil end,
+                        AdjustSpeed = function() return nil end
+                    }
+                end
+                
+                return result
+            end
+        end
+    end
+end
 
 if _G.FastAttack then
     local _ENV = (getgenv or getrenv or getfenv)()
@@ -11708,4 +11835,4 @@ end)
             end
          end)
      end)
-     
+     print("cu2")
