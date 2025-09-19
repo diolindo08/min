@@ -1,54 +1,64 @@
-print("buceta")
-wait(3)
 print("cu")
--- Adicionar tratamento global de erros
-local originalErrorHandler = error
-local function customErrorHandler(message, level)
-    warn("Erro capturado: " .. tostring(message))
-    return nil
-end
 
--- Substituir a função de erro global
-error = function(message, level)
-    warn("Erro ignorado: " .. tostring(message))
-    return nil
-end
-
--- Ignorar erros de animação específicos
-local function ignoreAnimationErrors()
-    local mt = getrawmetatable(game)
-    local old = mt.__namecall
-    setreadonly(mt, false)
-    
-    mt.__namecall = newcclosure(function(self, ...)
-        local args = {...}
-        local method = getnamecallmethod()
+-- Desabilitar completamente animações para evitar erros
+local function disableAllAnimations()
+    -- Interceptar todas as chamadas de animação
+    local success, result = pcall(function()
+        local mt = getrawmetatable(game)
+        local oldNamecall = mt.__namecall
+        setreadonly(mt, false)
         
-        if method == "LoadAnimation" then
-            local success, result = pcall(function()
-                return old(self, ...)
-            end)
+        mt.__namecall = newcclosure(function(self, ...)
+            local args = {...}
+            local method = getnamecallmethod()
             
-            if not success then
-                warn("Erro de animação ignorado: " .. tostring(result))
+            -- Interceptar qualquer método relacionado a animações
+            if method == "LoadAnimation" or method == "PlayAnimation" or 
+               method:find("Animation") or method:find("Anim") then
+                warn("Animação bloqueada: " .. method)
                 return {
                     Play = function() return nil end,
                     Stop = function() return nil end,
-                    AdjustSpeed = function() return nil end
+                    AdjustSpeed = function() return nil end,
+                    GetTimeOfKeyframe = function() return 0 end,
+                    IsPlaying = function() return false end
                 }
             end
             
-            return result
-        end
+            return oldNamecall(self, ...)
+        end)
         
-        return old(self, ...)
+        -- Também substituir o método __index para interceptar propriedades de animação
+        local oldIndex = mt.__index
+        mt.__index = newcclosure(function(self, key)
+            local result = oldIndex(self, key)
+            
+            -- Interceptar propriedades relacionadas a animações
+            if key == "Animation" or key == "Animations" or key:find("Anim") then
+                if type(result) == "userdata" then
+                    -- Criar um objeto falso para substituir
+                    return {
+                        AnimationId = "rbxassetid://0",
+                        Play = function() return nil end,
+                        Stop = function() return nil end,
+                        IsPlaying = function() return false end
+                    }
+                end
+            end
+            
+            return result
+        end)
+        
+        setreadonly(mt, true)
     end)
     
-    setreadonly(mt, true)
+    if not success then
+        warn("Falha ao desabilitar animações: " .. tostring(result))
+    end
 end
 
--- Tentar aplicar o tratamento de erros de animação
-pcall(ignoreAnimationErrors)
+-- Aplicar a desativação de animações
+pcall(disableAllAnimations)
 
 local MatsuneA1 = {};
 
