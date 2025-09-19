@@ -8894,13 +8894,34 @@ end
 local function findVolcanoRock()
     -- Verificação básica de segurança
     if not game or not game.Workspace or not game.Workspace.Map then
+        print("Erro: Workspace ou Map não encontrados")
         return nil
     end
     
     -- Verificar se a ilha existe
     local island = game.Workspace.Map:FindFirstChild("PrehistoricIsland")
     if not island then
-        return nil
+        print("Erro: PrehistoricIsland não encontrada")
+        -- Tentar encontrar qualquer ilha que possa conter rochas vulcânicas
+        for _, obj in pairs(game.Workspace.Map:GetChildren()) do
+            if obj:IsA("Model") and (obj.Name:find("Island") or obj.Name:find("Volcano")) then
+                island = obj
+                print("Encontrada ilha alternativa: " .. island.Name)
+                break
+            end
+        end
+        
+        if not island then
+            return nil
+        end
+    end
+    
+    -- Primeiro, procurar por objetos com nomes específicos
+    for _, obj in pairs(island:GetDescendants()) do
+        if obj:IsA("BasePart") and (obj.Name:lower():find("rock") or obj.Name:lower():find("vulcan")) then
+            print("Encontrada rocha vulcânica pelo nome: " .. obj.Name)
+            return obj
+        end
     end
     
     -- Procurar diretamente por qualquer parte vermelha na ilha
@@ -8908,12 +8929,22 @@ local function findVolcanoRock()
         if obj:IsA("BasePart") then
             local color = obj.Color
             -- Qualquer parte vermelha pode ser uma rocha vulcânica
-            if color.R > 0.6 and color.G < 0.4 and color.B < 0.4 then
+            if color.R > 0.5 and color.G < 0.5 and color.B < 0.5 then
+                print("Encontrada rocha vulcânica pela cor")
                 return obj
             end
         end
     end
     
+    -- Se ainda não encontrou, pegar qualquer parte da ilha como último recurso
+    for _, obj in pairs(island:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.CanCollide then
+            print("Usando parte da ilha como último recurso: " .. obj.Name)
+            return obj
+        end
+    end
+    
+    print("Nenhuma rocha vulcânica encontrada")
     return nil
 end
 local function useWeapon(weaponType)
@@ -8937,6 +8968,12 @@ spawn(function()
 	while wait(0.1) do
 		if _G.DefendVolcano then
 			pcall(function()
+				-- Verificar se as funções necessárias existem
+				if not AutoHaki then
+					print("Erro: Função AutoHaki não encontrada")
+					return
+				end
+				
 				AutoHaki()
 				
 				-- Verificar se o personagem existe
@@ -8960,8 +8997,17 @@ spawn(function()
 				-- Encontrar rocha vulcânica
 				local volcanoRock = findVolcanoRock()
 				if volcanoRock then
-					-- Teleportar para a rocha
-					TP1(CFrame.new(volcanoRock.Position))
+					-- Verificar se a função topos existe antes de chamar TP1
+					if not topos then
+						print("Erro: Função topos não encontrada")
+						-- Alternativa: teleportar diretamente
+						character.HumanoidRootPart.CFrame = CFrame.new(volcanoRock.Position)
+					else
+						-- Teleportar para a rocha usando pcall para evitar erros
+						pcall(function()
+							character.HumanoidRootPart.CFrame = CFrame.new(volcanoRock.Position)
+						end)
+					end
 					
 					-- Atacar imediatamente
 					if _G.UseMelee then useWeapon("Melee") end
