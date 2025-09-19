@@ -1,5 +1,6 @@
-print("cu1")
-wait(2)
+print("buceta")
+wait(3)
+print("cu")
 -- Adicionar tratamento global de erros
 local originalErrorHandler = error
 local function customErrorHandler(message, level)
@@ -9019,8 +9020,9 @@ local function removeLava()
 		end
 	end
 end
-local function findVolcanoRock()
-    -- Verificação básica de segurança
+
+-- Função melhorada para encontrar rachaduras do vulcão
+local function findVolcanoCrack()
     if not game or not game.Workspace or not game.Workspace.Map then
         print("Erro: Workspace ou Map não encontrados")
         return nil
@@ -9030,7 +9032,7 @@ local function findVolcanoRock()
     local island = game.Workspace.Map:FindFirstChild("PrehistoricIsland")
     if not island then
         print("Erro: PrehistoricIsland não encontrada")
-        -- Tentar encontrar qualquer ilha que possa conter rochas vulcânicas
+        -- Tentar encontrar qualquer ilha que possa conter rachaduras vulcânicas
         for _, obj in pairs(game.Workspace.Map:GetChildren()) do
             if obj:IsA("Model") and (obj.Name:find("Island") or obj.Name:find("Volcano")) then
                 island = obj
@@ -9044,27 +9046,41 @@ local function findVolcanoRock()
         end
     end
     
-    -- Primeiro, procurar por objetos com nomes específicos
+    -- Procurar por rachaduras específicas
     for _, obj in pairs(island:GetDescendants()) do
-        if obj:IsA("BasePart") and (obj.Name:lower():find("rock") or obj.Name:lower():find("vulcan")) then
-            print("Encontrada rocha vulcânica pelo nome: " .. obj.Name)
+        if obj:IsA("BasePart") and (
+            obj.Name:lower():find("crack") or 
+            obj.Name:lower():find("fissure") or 
+            obj.Name:lower():find("vulcan") or
+            obj.Name:lower():find("rock")
+        ) then
+            print("Encontrada rachadura vulcânica pelo nome: " .. obj.Name)
             return obj
         end
     end
     
-    -- Procurar diretamente por qualquer parte vermelha na ilha
+    -- Procurar por partes vermelhas ou laranja (cores de lava)
     for _, obj in pairs(island:GetDescendants()) do
         if obj:IsA("BasePart") then
             local color = obj.Color
-            -- Qualquer parte vermelha pode ser uma rocha vulcânica
-            if color.R > 0.5 and color.G < 0.5 and color.B < 0.5 then
-                print("Encontrada rocha vulcânica pela cor")
+            -- Cores de lava/rachadura
+            if (color.R > 0.5 and color.G < 0.5 and color.B < 0.3) or
+               (color.R > 0.7 and color.G > 0.3 and color.G < 0.7 and color.B < 0.3) then
+                print("Encontrada rachadura vulcânica pela cor")
                 return obj
             end
         end
     end
     
-    -- Se ainda não encontrou, pegar qualquer parte da ilha como último recurso
+    -- Se ainda não encontrou, procurar por qualquer parte com material de lava
+    for _, obj in pairs(island:GetDescendants()) do
+        if obj:IsA("BasePart") and (obj.Material == Enum.Material.Neon or obj.Material == Enum.Material.Foil) then
+            print("Encontrada rachadura vulcânica pelo material")
+            return obj
+        end
+    end
+    
+    -- Último recurso: qualquer parte da ilha
     for _, obj in pairs(island:GetDescendants()) do
         if obj:IsA("BasePart") and obj.CanCollide then
             print("Usando parte da ilha como último recurso: " .. obj.Name)
@@ -9072,9 +9088,10 @@ local function findVolcanoRock()
         end
     end
     
-    print("Nenhuma rocha vulcânica encontrada")
+    print("Nenhuma rachadura vulcânica encontrada")
     return nil
 end
+
 local function useWeapon(weaponType)
 	local player = game.Players.LocalPlayer;
 	local backpack = player.Backpack;
@@ -9092,10 +9109,32 @@ local function useWeapon(weaponType)
 		end
 	end
 end
+
+-- Função removida conforme solicitado
+
+-- Função para verificar se há golens para matar
+local function findGolem()
+    if game:GetService("Workspace").Enemies:FindFirstChild("Lava Golem") then
+        for i,v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
+            if v.Name == "Lava Golem" and v:FindFirstChild("Humanoid") and 
+               v:FindFirstChild("HumanoidRootPart") and v.Humanoid.Health > 0 then
+                return v
+            end
+        end
+    end
+    
+    if game:GetService("ReplicatedStorage"):FindFirstChild("Lava Golem") then
+        return game:GetService("ReplicatedStorage"):FindFirstChild("Lava Golem")
+    end
+    
+    return nil
+end
+
 spawn(function()
 	while wait(0.1) do
 		if _G.DefendVolcano then
 			pcall(function()
+                
 				-- Verificar se as funções necessárias existem
 				if not AutoHaki then
 					print("Erro: Função AutoHaki não encontrada")
@@ -9112,42 +9151,66 @@ spawn(function()
 				
 				-- Remover lava para facilitar navegação
 				pcall(function()
-					local island = game.Workspace.Map:FindFirstChild("PrehistoricIsland")
-					if island then
-						for _, obj in pairs(island:GetDescendants()) do
-							if obj:IsA("BasePart") and obj.Name:lower():find("lava") then
-								obj:Destroy()
-							end
-						end
-					end
+					removeLava()
 				end)
 				
-				-- Encontrar rocha vulcânica
-				local volcanoRock = findVolcanoRock()
-				if volcanoRock then
-					-- Verificar se a função topos existe antes de chamar TP1
-					if not topos then
-						print("Erro: Função topos não encontrada")
-						-- Alternativa: teleportar diretamente
-						character.HumanoidRootPart.CFrame = CFrame.new(volcanoRock.Position)
-					else
-						-- Teleportar para a rocha usando pcall para evitar erros
-						pcall(function()
-							character.HumanoidRootPart.CFrame = CFrame.new(volcanoRock.Position)
-						end)
-					end
-					
-					-- Atacar imediatamente
-					if _G.UseMelee then useWeapon("Melee") end
-					if _G.UseSword then useWeapon("Sword") end
-					if _G.UseGun then useWeapon("Gun") end
-					
-					-- Usar todas as habilidades disponíveis
-					for _, key in ipairs({"Z", "X", "C", "V", "F", "T"}) do
-						sendKeyEvent(key)
-						wait(0.05)
-					end
-				end
+				-- Primeiro verificar se há golens (prioridade)
+				local golem = findGolem()
+				if golem and golem:FindFirstChild("HumanoidRootPart") then
+                    print("Golem encontrado, atacando...")
+                    
+                    -- Equipar arma selecionada
+                    EquipWeapon(_G.SelectWeapon)
+                    
+                    -- Teleportar para o golem
+                    if topos then
+                        topos(golem.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0))
+                    else
+                        character.HumanoidRootPart.CFrame = golem.HumanoidRootPart.CFrame * CFrame.new(0, 30, 0)
+                    end
+                    
+                    -- Configurar o golem
+                    if golem:FindFirstChild("Humanoid") and golem:FindFirstChild("HumanoidRootPart") then
+                        golem.HumanoidRootPart.CanCollide = false
+                        golem.Humanoid.WalkSpeed = 0
+                        golem.HumanoidRootPart.Size = Vector3.new(50,50,50)
+                        sethiddenproperty(game.Players.LocalPlayer,"SimulationRadius",math.huge)
+                    end
+                    
+                    -- Usar habilidades
+                    if _G.UseMelee then useWeapon("Melee") end
+                    if _G.UseSword then useWeapon("Sword") end
+                    if _G.UseGun then useWeapon("Gun") end
+                    
+                    for _, key in ipairs({"Z", "X", "C", "V", "F", "T"}) do
+                        sendKeyEvent(key)
+                        wait(0.05)
+                    end
+                else
+                    -- Se não houver golens, atacar rachaduras
+                    local volcanoCrack = findVolcanoCrack()
+                    if volcanoCrack then
+                        print("Rachadura vulcânica encontrada, atacando...")
+                        
+                        -- Teleportar para a rachadura
+                        if topos then
+                            topos(CFrame.new(volcanoCrack.Position))
+                        else
+                            character.HumanoidRootPart.CFrame = CFrame.new(volcanoCrack.Position)
+                        end
+                        
+                        -- Atacar imediatamente
+                        if _G.UseMelee then useWeapon("Melee") end
+                        if _G.UseSword then useWeapon("Sword") end
+                        if _G.UseGun then useWeapon("Gun") end
+                        
+                        -- Usar todas as habilidades disponíveis
+                        for _, key in ipairs({"Z", "X", "C", "V", "F", "T"}) do
+                            sendKeyEvent(key)
+                            wait(0.05)
+                        end
+                    end
+                end
 			end)
 		end
 	end
@@ -9202,37 +9265,6 @@ spawn(function()
     end
 end)
 
-Volcano:Toggle("Auto Kill Aura Golem", false, function(value)
-      _G.Kill_Aura = value
-  end)
-
-spawn(function()
-    pcall(function()
-        while wait() do
-            if _G.Kill_Aura then
-                local player = game:GetService("Players").LocalPlayer
-                local enemies = game:GetService("Workspace").Enemies:GetChildren()
-                local playerPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
-                if playerPos then
-                    for _, enemy in pairs(enemies) do
-                        if enemy:FindFirstChild("Humanoid") and enemy:FindFirstChild("HumanoidRootPart") and enemy.Humanoid.Health > 0 then
-                            local distance = (enemy.HumanoidRootPart.Position - playerPos).Magnitude
-                            if distance <= 1000 then
-                                pcall(function()
-                                    repeat wait()
-                                        sethiddenproperty(player, "SimulationRadius", math.huge)
-                                        enemy.Humanoid.Health = 0
-                                        enemy.HumanoidRootPart.CanCollide = false
-                                    until not _G.Kill_Aura or not enemy.Parent or enemy.Humanoid.Health <= 0
-                                end)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end)
-end)
   Volcano:Toggle("Collect Bone", false, function(Value)
       _G.AutoCollectBone = Value    
      StopTween(_G.AutoCollectBone)
@@ -11836,5 +11868,4 @@ end)
             end
          end)
      end)
-     print("cu2")
-
+     
